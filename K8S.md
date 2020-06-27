@@ -375,104 +375,341 @@ kubelet 维护pod的生命周期
 
 # 安装
 
-步骤
+在另一个安装.md中
 
-1. 安装 docker for mac (略去）
-
-2. 安装最新版本的go (略去）
-
-3. 安装kind
-
-```text
-export PATH=$PATH:/Users/andywang/go/bin/
-
-#GO111MODULE="on" go get sigs.k8s.io/kind@v0.5.1
-go: finding github.com/golang/protobuf v0.0.0-20161109072736-4bd1920723d7
-go: finding golang.org/x/tools v0.0.0-20181011042414-1f849cf54d09
-go: finding golang.org/x/tools v0.0.0-20180221164845-07fd8470d635
-...
-go: extracting golang.org/x/text v0.3.2
+```
+https://blog.csdn.net/adson1987/article/details/106337079/
 ```
 
-4. 通过kind安装cluster
+# 资源类型
 
-```text
-# kind create cluster
-Creating cluster "kind" ...
- ✓ Ensuring node image (kindest/node:v1.15.3)  
- ✓ Preparing nodes  
- ✓ Creating kubeadm config  
- ✓ Starting control-plane  ️
- ✓ Installing CNI  
- ✓ Installing StorageClass  
-Cluster creation complete. You can now use the cluster with:
+![image-20200626223735063](K8S.assets/image-20200626223735063.png)
 
+# YAMl
 
- andywang@andywang-mbp  ~/.kube  export KUBECONFIG="$(kind get kubeconfig-path)"
-kubectl cluster-info
-Kubernetes master is running at https://127.0.0.1:54056
-KubeDNS is running at https://127.0.0.1:54056/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+- 缩进时不能使用TAB键,只允许使用空格
 
- andywang@andywang-mbp  ~/.kube  kubectl get nodes
-NAME                 STATUS   ROLES    AGE     VERSION
-kind-control-plane   Ready    master   4m15s   v1.15.3
+- 缩进的空格树木不重要,只要相同层级的元素左侧对其
 
-这个安装的默认的master,没有worker node.我们删掉他。重新创建
+-  #表示注释
 
-#wget -c https://raw.githubusercontent.com/kubernetes-sigs/kind/master/site/content/docs/user/kind-example-config.yaml
+  
 
+==支持的数据格式==
 
-# kind create cluster --name kind2 --config kind-example-config.yaml
+- 对象 键值对的集合 有称为映射mapping 哈希hashes、 字典dictionary
+- 数组 一组按照序列排列的值,又称为序列(sequence)、列表list
+- 纯量scalars 单个的,不可再分的值
 
-andywang@andywang-mbp  ~/.kube  kind create cluster --name kind2 --config kind-example-config.yaml --loglevel trace --wait 5m
-Creating cluster "kind2" ...
- ✓ Ensuring node image (kindest/node:v1.15.3)  
-⠈⠑ Preparing nodes    
-....
- ✓ Waiting ≤ 5m0s for control-plane = Ready ⏳
- • Ready after 1m6s  
+==对象类型==
 
+```
+name : stave
+age : 18
+```
 
-✘ andywang@andywang-mbp  ~/.kube  kubectl cluster-info
-Kubernetes master is running at https://127.0.0.1:57630
-KubeDNS is running at https://127.0.0.1:57630/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
+也允许另外一种写法
 
-To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
- andywang@andywang-mbp  ~/.kube  kubectl get nodes
-NAME                  STATUS   ROLES    AGE     VERSION
-kind2-control-plane   Ready    master   3m10s   v1.15.3
-kind2-worker          Ready    <none>   2m27s   v1.15.3
-kind2-worker2         Ready    <none>   2m27s   v1.15.3
-kind2-worker3         Ready    <none>   2m26s   v1.15.3
-
- andywang@andywang-mbp  ~/.kube  kubectl get pods -n kube-system
-NAME                                          READY   STATUS    RESTARTS   AGE
-coredns-5c98db65d4-8vk6s                      1/1     Running   0          3m12s
-coredns-5c98db65d4-lh7xd                      1/1     Running   0          3m12s
-etcd-kind2-control-plane                      1/1     Running   0          2m44s
-kindnet-bcw95                                 1/1     Running   1          3m12s
-kindnet-ds2cn                                 1/1     Running   1          2m52s
-kindnet-jb9ts                                 1/1     Running   1          2m52s
-kindnet-wm7m6                                 1/1     Running   1          2m54s
-kube-apiserver-kind2-control-plane            1/1     Running   0          2m37s
-kube-controller-manager-kind2-control-plane   1/1     Running   1          2m33s
-kube-proxy-8m66m                              1/1     Running   0          3m12s
-kube-proxy-gsfn7                              1/1     Running   0          2m51s
-kube-proxy-mkw6k                              1/1     Running   0          2m52s
-kube-proxy-xldp9                              1/1     Running   0          2m54s
-kube-scheduler-kind2-control-plane            1/1     Running   2          2m44s
- andywang@andywang-mbp  ~/.kube 
+```
+hash :{name:steve,age:18}
 ```
 
 
 
+==数组类型==
+
+```
+animal
+- cat
+- dog
+```
+
+数组也可以采用行内表示法
+
+```
+aniamal:[cat,dog]
+```
 
 
 
+==符合类型==
+
+```
+1 字符串 布尔值 整数 浮点数 null
+2 时间 日期
+
+数值直接一字面量的形式表示
+number :12.30
+
+布尔值用true和false表示
+isSet:true
+
+null用~表示
+parent: ~
+
+时间采用IS0860 格式
+iso8601 2001-12-14t21:59:43.10-05:00
+
+日期采用复合 iso8601 格式的年、月、日表示
+date:1976-07-31
+
+YAML 允许使用两个感叹号,强制转换数据类型
+e:!!str 123
+f:!!str true
+```
 
 
 
+==字符串==
 
+字符串默认不使用引号表示
+
+```
+str :这是一个字符串
+```
+
+如果字符串之中包含空格和特殊字符,需要放在引号当中
+
+```
+s1:'内容\n字符串'
+s2:'内容\n字符串'
+
+```
+
+单引号双引号都可以使用,<font color=red>双引号不会对字符进行转移</font>
+
+```
+s1:'内容\n字符串'
+s2:"内容\n字符串“
+```
+
+单引号之中还有单引号,必须使用连续两个单引号转义
+
+```
+str:’labor’‘s day‘
+```
+
+
+
+字符串可以写成多行,从第二行开始,从第二行开始,必须有一个单空格缩进,换行符会被转为空格
+
+```
+str:这是一段
+	多行
+	字符串
+```
+
+字符串可以使用|保留换行符,也可以使用>折叠换行
+
+```
+this |
+foo
+bar
+that:>
+foo
+bar
+```
+
++表示保留文字块末尾的换行,-表示删除字符串末尾的换行
+
+```
+s1:|
+	foo
+s2 :|+
+	foo
+	
+s3:|-
+	foo
+```
+
+# Yaml 示例
+
+```
+# Copyright 2017 The Kubernetes Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ------------------- Dashboard Secret ------------------- #
+
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard-certs
+  namespace: kube-system
+type: Opaque
+
+---
+# ------------------- Dashboard Service Account ------------------- #
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+
+---
+# ------------------- Dashboard Role & Role Binding ------------------- #
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+rules:
+  # Allow Dashboard to create 'kubernetes-dashboard-key-holder' secret.
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["create"]
+  # Allow Dashboard to create 'kubernetes-dashboard-settings' config map.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create"]
+  # Allow Dashboard to get, update and delete Dashboard exclusive secrets.
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["kubernetes-dashboard-key-holder", "kubernetes-dashboard-certs"]
+  verbs: ["get", "update", "delete"]
+  # Allow Dashboard to get and update 'kubernetes-dashboard-settings' config map.
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["kubernetes-dashboard-settings"]
+  verbs: ["get", "update"]
+  # Allow Dashboard to get metrics from heapster.
+- apiGroups: [""]
+  resources: ["services"]
+  resourceNames: ["heapster"]
+  verbs: ["proxy"]
+- apiGroups: [""]
+  resources: ["services/proxy"]
+  resourceNames: ["heapster", "http:heapster:", "https:heapster:"]
+  verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kubernetes-dashboard-minimal
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kubernetes-dashboard-minimal
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard
+  namespace: kube-system
+
+---
+# ------------------- Dashboard Deployment ------------------- #
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      k8s-app: kubernetes-dashboard
+  template:
+    metadata:
+      labels:
+        k8s-app: kubernetes-dashboard
+    spec:
+      containers:
+      - name: kubernetes-dashboard
+        image: k8s.gcr.io/kubernetes-dashboard-amd64:v1.10.1
+        ports:
+        - containerPort: 8443
+          protocol: TCP
+        args:
+          - --auto-generate-certificates
+          # Uncomment the following line to manually specify Kubernetes API server Host
+          # If not specified, Dashboard will attempt to auto discover the API server and connect
+          # to it. Uncomment only if the default does not work.
+          # - --apiserver-host=http://my-address:port
+        volumeMounts:
+        - name: kubernetes-dashboard-certs
+          mountPath: /certs
+          # Create on-disk volume to store exec logs
+        - mountPath: /tmp
+          name: tmp-volume
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /
+            port: 8443
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+      volumes:
+      - name: kubernetes-dashboard-certs
+        secret:
+          secretName: kubernetes-dashboard-certs
+      - name: tmp-volume
+        emptyDir: {}
+      serviceAccountName: kubernetes-dashboard
+      # Comment the following tolerations if Dashboard must not be deployed on master
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+
+---
+# ------------------- Dashboard Service ------------------- #
+
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    k8s-app: kubernetes-dashboard
+  name: kubernetes-dashboard
+  namespace: kube-system
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+  selector:
+    k8s-app: kubernetes-dashboard
+```
+
+
+
+# 常用字段说明
+
+官方文档
+
+或者
+
+
+
+## 必须存在的属性
+
+![image-20200626231020240](K8S.assets/image-20200626231020240.png)
+
+
+
+主要对象
+
+![image-20200626231718117](K8S.assets/image-20200626231718117.png)
+
+![image-20200626234417354](K8S.assets/image-20200626234417354.png)
 
 
 
