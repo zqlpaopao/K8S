@@ -145,7 +145,7 @@ K8S来说,不能使用deployment部署模型来部署有状态服务,通常情�
 
  - 有状态的服务
    	- 有==实时==的数据需要存储
-   	- 有状态服务集群中,把某一个服务抽离出去,一段时间后在加入机器网络,如果集群服务无法使用
+      	- 有状态服务集群中,把某一个服务抽离出去,一段时间后在加入机器网络,如果集群服务无法使用
 - 无状态服务
   - 没有==实时==数据需要存储
   - 在无状态的集群中,把某一个服务抽离出去,一段时间后再加入机器网络,对集群没有任何影响
@@ -713,6 +713,21 @@ spec:
 
 
 
+# 编写pod.yaml
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp-pod
+  labels:
+    app: myapp
+    version: v1
+spec:
+  containers:
+    - name: app
+      image: k8s.gcr.io/etcd:v1
+```
 
 
 
@@ -720,26 +735,236 @@ spec:
 
 
 
+# ==常用命令----------------------------==
+
+==启动==
+
+kubectl apply -f pod.yaml
 
 
 
+==查看当前运行pod状态==
+
+Kubectl get pod
 
 
 
+Kubectl get pod  -o wide   详细信息
 
 
 
+==查看pod的运行状态==
+
+kubectl describe pod myapp-pod
+
+```
+Name:         myapp-pod
+Namespace:    default
+Priority:     0
+Node:         docker-desktop/192.168.65.3
+Start Time:   Sun, 28 Jun 2020 21:34:44 +0800
+Labels:       app=myapp
+              version=v1
+Annotations:  kubectl.kubernetes.io/last-applied-configuration:
+                {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"app":"myapp","version":"v1"},"name":"myapp-pod","namespace":"defau...
+Status:       Pending
+IP:           10.1.0.51
+Containers:
+  app:
+    Container ID:
+    Image:          k8s.gcr.io/etcd:v1
+    Image ID:
+    Port:           <none>
+    Host Port:      <none>
+    State:          Waiting
+      Reason:       ImagePullBackOff
+    Ready:          False
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-rksmw (ro)
+  test:
+    Container ID:
+    Image:          k8s.gcr.io/etcd:v1
+    Image ID:
+    Port:           <none>
+    Host Port:      <none>
+    State:          Waiting
+      Reason:       ImagePullBackOff
+    Ready:          False
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from default-token-rksmw (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             False
+  ContainersReady   False
+  PodScheduled      True
+Volumes:
+  default-token-rksmw:
+    Type:        Secret (a volume populated by a Secret)
+    SecretName:  default-token-rksmw
+    Optional:    false
+QoS Class:       BestEffort
+Node-Selectors:  <none>
+Tolerations:     node.kubernetes.io/not-ready:NoExecute for 300s
+                 node.kubernetes.io/unreachable:NoExecute for 300s
+Events:
+  Type     Reason          Age                    From                     Message
+  ----     ------          ----                   ----                     -------
+  Normal   Scheduled       3m20s                  default-scheduler        Successfully assigned default/myapp-pod to docker-desktop
+  Normal   SandboxChanged  3m1s                   kubelet, docker-desktop  Pod sandbox changed, it will be killed and re-created.
+  Normal   Pulling         2m45s (x2 over 3m19s)  kubelet, docker-desktop  Pulling image "k8s.gcr.io/etcd:v1"
+  Warning  Failed          2m30s (x2 over 3m1s)   kubelet, docker-desktop  Failed to pull image "k8s.gcr.io/etcd:v1": rpc error: code = Unknown desc = Error response from daemon: Get https://k8s.gcr.io/v2/: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+  Warning  Failed          2m30s (x2 over 3m1s)   kubelet, docker-desktop  Error: ErrImagePull
+  Normal   BackOff         2m30s (x5 over 3m1s)   kubelet, docker-desktop  Back-off pulling image "k8s.gcr.io/etcd:v1"
+  Warning  Failed          2m30s (x5 over 3m1s)   kubelet, docker-desktop  Error: ImagePullBackOff
+  Normal   BackOff         2m17s (x4 over 3m1s)   kubelet, docker-desktop  Back-off pulling image "k8s.gcr.io/etcd:v1"
+  Warning  Failed          2m17s (x4 over 3m1s)   kubelet, docker-desktop  Error: ImagePullBackOff
+```
 
 
 
+==查看pod运行日志==
+
+kubectl log myapp-pod -c test
+
+Kubectl log pod名称 -c 容器名称
+
+```
+log is DEPRECATED and will be removed in a future version. Use logs instead.
+Error from server (BadRequest): container "test" in pod "myapp-pod" is waiting to start: trying and failing to pull image
+```
+
+  
+
+==删除pod==
+
+kubectl delete pod myapp-pod
+
+kubectl delete pod    pod名称
 
 
 
+==删除所有pod==
+
+kubectl delete pod --all
 
 
 
+==删除所有的deployment== 只删除pod 会不断的重建pod
+
+kubectl delete deploment --all
 
 
+
+==获取所有的svc--service== service 对外提供服务的
+
+kubectl get svc
+
+![image-20200628223824616](K8S.assets/image-20200628223824616.png)
+
+
+
+==删除svc==
+
+kubectl delete svc 指定名称
+
+
+
+==查看内部DNS服务解析==
+
+kubectl get pod -n kube-system
+
+![image-20200628223800159](K8S.assets/image-20200628223800159.png)
+
+# 容器的生命周期
+
+![image-20200628214827171](K8S.assets/image-20200628214827171.png)
+
+
+
+<font color=red>Init C 进行容器初始化,初始化完成就会消失 >=1 甚至没有也行,是线性运行的</font>
+
+<font color=red>pause 极简容器 在pod 在创建的时候就会生成,然后进行init C的创建</font>
+
+<font color=red>readness 就绪检测,检测容器服务是否可用,可用修运行状态为runing</font>
+
+<font color=red>liveness 生存检测,检测运行的容器是否是假死状态,重启服务</font>
+
+![image-20200628215715116](K8S.assets/image-20200628215715116.png)
+
+## inti 容器
+
+![image-20200628220257900](K8S.assets/image-20200628220257900.png)
+
+重启策略可以设置
+
+![image-20200628220443941](K8S.assets/image-20200628220443941.png)
+
+
+
+![image-20200628221029052](K8S.assets/image-20200628221029052.png)
+
+
+
+## init C的简单编写
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+	name: myapp-pod
+	labels:
+		app: myapp
+		version: v1
+spec:
+	containers:
+		-name: myapp-container
+		images: busyBox
+		command: ['sh','-c','echo The app is running! && sleep 3600']
+	initContainers: //为pod创建初始化init时候使用
+		-name: init-myservice
+		image: busybox
+		command: ['sh','-c','until nslookup myservice;do echo waiting for myservice;sleep 2;done;']
+		- name: init-mydb
+		image: busybox
+		command: ['sh','-c','until nslookup mydb;do echo waiting foe mydb; sleep 2 done;]
+```
+
+```
+创建需要的pod
+
+kind: Service
+appVersion: v1
+metadata:
+	name: myservice
+spec: 
+ ports:
+ 	-protocol: TCP
+ 	port: 80
+ 	targetPort: 9367
+
+kind: Service
+apiVersion: v1
+metadata:
+	name: mydb
+spec:
+	ports
+		-protocol: TCP
+		port:80
+		targetPort: 9377
+```
+
+
+
+![image-20200628224306215](K8S.assets/image-20200628224306215.png)
+
+
+
+![image-20200628224747389](K8S.assets/image-20200628224747389.png)
 
 
 
