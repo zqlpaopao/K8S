@@ -880,6 +880,24 @@ kubectl get pod -n kube-system
 
 ![image-20200628223800159](K8S.assets/image-20200628223800159.png)
 
+
+
+==进入容器内部==
+
+kubectl exec 容器名称 -it -- /bin/sh
+
+-it 交互式进入 
+
+-- 要执行的命令
+
+
+
+
+
+
+
+
+
 # 容器的生命周期
 
 ![image-20200628214827171](K8S.assets/image-20200628214827171.png)
@@ -968,25 +986,230 @@ spec:
 
 
 
+# 探针
+
+是kubectl 对容器的定期诊断
+
+![image-20200629220418064](K8S.assets/image-20200629220418064.png)
+
+
+
+ExecAction : 在容器内执行的指定命令,如果命令退出时返回0,则认为诊断成功
+
+TCPSocketAction :对指定端口上的容器的IP地址进行TCP检查,如果端口打开,则诊断认定是成功的
+
+HTTPGetAction:对指定的端口和路径上的容器的IP地址执行HTTP Get请求,如果响应的状态码大于等200切小于400,则诊断认定是成功的
+
+
+
+每次探针都获得一下三种结果之一
+
+- 成功,容器通过了诊断
+- 失败,容器未通过诊断
+- 未知 诊断失败,因此不会采取任何措施
+
+
+
+## 探测方式
+
+livenessProde 指定容器是否在运行,
+
+readnessProde
+
+![image-20200629221138503](K8S.assets/image-20200629221138503.png)
 
 
 
 
 
+## 探针的实现
+
+<font color=red>就绪检测</font>
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+	name: readness-httpget-pod
+	image: default
+spec:
+	containers:
+		name: readness-httpget-container
+		image: wangyanglinux/myapp:v1
+		imagePullPolicy: IfNotPresent
+		readnessProde:
+			httpGet:
+				port: http
+				path: /index.html
+			initialDelaySeconds: 1
+			periodSeconds: 3
+```
+
+
+
+<font color=red>存活检测</font>
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+	name: livness-exec-pod
+	namespace: deauflt
+	spec:
+		containers:
+			-name: liveness-exec-container
+			image:xxx/xxx/busybox
+			imagePullPolicy: IfNotPresent //如果不存在去拉取
+			command: ["/bin/sh","-c","touch /tmp/live ; sleep 60; rm-rf /tmp/live; sleep 3600"]
+			livenessProbe:
+				exec:
+					command: ["test","-e","/tmp/live"]
+				initalDelaySeconds: 1
+				perIodSeconds: 3
+```
+
+
+
+# start stop 相位
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+	name: lifecycel-demo
+spec:
+	containers:
+		- name: lifecycel-demo-container
+			image: nginx
+			lifecycle:
+				postStart:
+					exec:
+						command: ["/bin/sh","-c","echo Hello from the postStart handler > /usr/share/message"]
+				PreStop:
+					exec:
+						command: ["usr/sbin/nginx","-s","quit"]
+```
 
 
 
 
 
+![image-20200629224728506](K8S.assets/image-20200629224728506.png)
+
+![image-20200629224703645](K8S.assets/image-20200629224703645.png)
 
 
 
 
 
+# 控制器
+
+pod的分类
+
+- 自主类pod ,pod退出就不会创建次类型的pod
+- 控制器管理的pod 在控制器的生命周期内,始终要位置pod的存在
+
+
+
+kubernetes 中内建了很多controller(控制器0 这些相当于一个状态机,用来控制Pod的具体状态和行为
+
+
+
+控制器类型
+
+- ReplicationController 和ReplicSet
+- Deployment
+- DaemonSet
+- StateFuSet
+- Job/CronJob
+- Horizontal Pod AutoScaling
+
+
+
+## ReplicationController 和ReplicSet
+
+ReplicationController (RC) 用来确保容器应用的副本始终保持在用户自定义的副本数,即如果有容器异常退出,会自动创建新的Pod来替代;二如果异常多出来的容器也会自动回收
+
+在新版本的Kubernetes中建议使用ReplicaSet来取代ReplicationController,ReplicaSet跟ReplicationController没有本地的不同,只是名字不一样,并且ReplicationSet支持集合式的selector
 
 
 
 
+
+声明式编程
+
+​	apply--优 create
+
+命令式编程
+
+​	create--优 apply
+
+
+
+
+
+# Deployment
+
+Deployment 为Pod和ReplicaSet提供了一个声明式定义(declaractive)方法,用来代替以前的ReplicaController
+
+来方便的管理应用,典型的应用场景
+
+- 定义的Deployment 来创建Pod 和ReplicaSet
+- **滚动升级和回滚应用**
+- 扩容和缩容 RS就支持
+- **暂停和继续**
+
+创建过程
+
+![image-20200629231716270](K8S.assets/image-20200629231716270.png)
+
+## DaemonSet
+
+DaemonSet 确保全部(或者一些)Node上运行一个Pod的副本,当有Node加入集群的时候,也会为他们新增一个Pod,当有Node从集群中移除时,这些Pod也会被回收,删除DaemonSet将会删除他们创建的所有Pod
+
+使用DaemonSet的一些典型用法
+
+	- 运行集群存储Daemon,例如在每个Node上运行Glusted、ceph
+	- 在每个Node上运行的日志收集daemon,例如fluentd、logstash
+	- 在每个Node上运行监控daemon 例如prometheus Node Expoter collectd、Datadog代理、new Reli代理 或者ganglia
+
+
+
+## Job
+
+Job 负责批处理任务,即执行一次的任务,他保证批处理任务的一个或者多个Pod成功结束
+
+
+
+## CronJob
+
+基于时间的Job
+
+- 在给定时间点只运行一次
+- 周期性的在给定时间点运行
+
+使用的前提条件
+
+​	当前使用的Kubenetes集群,在>=1.8(对CronJob),对于先前版本的集群,版本<1.8 启动API Server时,通过传递选项--runtime-config-batch/v2alpha1-true可以开启batch/v2aplha1 Api
+
+
+
+## StatefulSet
+
+StatefulSet作为controller为Pod提供唯一的标识,它可以保证部署金额scale的顺序
+
+StatefulSet是为了解决<font color=red size=5x>有状态的服务</font>的问题(对应Deployments和<font color=green>ReplicaSets是为了无状态的服务</font>)
+
+- 稳定的持久化的存储,即Pod重新调度后还能访问到相同的持久化数据,给予PVC实现
+- 稳定的网络标识,即Pod重新调度后其PODName和HostName不变,基于Headless Service(即没有Cluster IP的Service)来实现
+- 有序部署、有拓展的、即Pod是有序的,在部署的或者扩展的时候要一句定义的顺序依次进行(即从0到N-1,在下一个Pod运行之前的Pod必须都是running和readu状态,基于initcontainers来实现的
+- 有序收缩、有序删除
+
+
+
+# Horizontal Pod Autoscaling
+
+应用的字段使用率通常都有高峰期和低谷的时候,如何学峰填谷,把高集群的整体资源利用率,让service中的Pod个数自动调整呢,这既有依赖与HOriizontal Pod Autoscaling了,故名思义,是Pod水平缩放
 
 
 
