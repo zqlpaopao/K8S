@@ -892,7 +892,27 @@ kubectl exec 容器名称 -it -- /bin/sh
 
 
 
+==查看pod的标签==
 
+kubectl get pod --show-labels
+
+![image-20200701215157410](K8S.assets/image-20200701215157410.png)
+
+
+
+
+
+==pod的lables修改==
+
+kubectl label pod myapp-pod tier=abc --overwrite=True
+
+![image-20200701215702738](K8S.assets/image-20200701215702738.png)
+
+
+
+==删除所有rs==
+
+kubectl delete rs --all
 
 
 
@@ -1209,25 +1229,72 @@ StatefulSet是为了解决<font color=red size=5x>有状态的服务</font>的�
 
 # Horizontal Pod Autoscaling
 
+控制控制器的
+
 应用的字段使用率通常都有高峰期和低谷的时候,如何学峰填谷,把高集群的整体资源利用率,让service中的Pod个数自动调整呢,这既有依赖与HOriizontal Pod Autoscaling了,故名思义,是Pod水平缩放
 
 
 
+# RS RC 和 deploment关联
+
+ RC(replicationContreller)主要作用就是来<font color=red>确保容器应用的副本数始终保持在用户定义的数量,即使有容器异常退出,会自动的创建Pod来替代;二如果异常多出来的容器也会自动回收</font>
 
 
 
+Kubertnets官方建议使用RS代替RC进行部署,Rs和RC没有本质不同,==RS支持集合式的selector
+
+```
+
+```
+
+![image-20200701214451109](K8S.assets/image-20200701214451109.png)
 
 
 
+![image-20200701215934745](K8S.assets/image-20200701215934745.png)
 
 
 
+Deployment 为Pod和ReplicaSet提供了一个声明式定义(declaractive)方法,用来代替以前的ReplicaController
 
+来方便的管理应用,典型的应用场景
 
+- 定义的Deployment 来创建Pod 和ReplicaSet
+- **滚动升级和回滚应用**
+- 扩容和缩容 RS就支持
+- **暂停和继续**
+- ![image-20200701220254123](K8S.assets/image-20200701220254123.png)
 
+```
+apiVersion: extensions/v1beta1
+kind: Deploment
+metadata: 
+	name: nginx-depolment
+spec:
+	replicas: 3
+	template:
+		metadata:
+			labels:
+				app: nginx
+		spec: 
+			containers:
+			- name: nginx
+				image: nginx:1.7.9
+				ports:
+					- containerPort: 80
+```
 
+kubectl apply -f deployment.yaml --record --validate=false
 
+<font color=red size=5x>--record 会自动记录每次的更新命令</font>
 
+kubectl get deployment
+
+kubectl get rs
+
+Deployment 会创建rs
+
+![image-20200701222213975](K8S.assets/image-20200701222213975.png)
 
 
 
